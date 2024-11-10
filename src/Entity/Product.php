@@ -11,6 +11,11 @@ use Doctrine\ORM\Mapping as ORM;
 #[ORM\Entity(repositoryClass: ProductRepository::class)]
 #[ApiResource(operations: [
     new GetCollection(),
+    new GetCollection(
+        uriTemplate: 'products/export',
+        formats: ['csv' => ['text/csv']],
+        paginationEnabled: false
+    )
 ])]
 class Product
 {

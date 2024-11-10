@@ -19,3 +19,10 @@ For grabbing products data from [Goldi](https://goldi.ua) store 3 pages execute 
 ```shell
 bin/console sync:products App\\Source\\GoldiUAGrabber --limit 3
 ```
+
+# Endpoints
+
+`https://localhost/api` - API Swagger Interface
+
+`https://localhost/api/products` - To get list of products in `json` format
+`https://localhost/api/products/export` - To export products in `csv` format
