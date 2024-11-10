@@ -1,0 +1,8 @@
+framework:
+    messenger:
+        transports:
+            product_synchronization:
+                 dsn: '%env(MESSENGER_TRANSPORT_DSN)%'
+
+        routing:
+            'App\Message\ProductSynchronizationMessage': product_synchronization

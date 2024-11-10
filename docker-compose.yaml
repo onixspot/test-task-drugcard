@@ -1,0 +1,48 @@
+services:
+    app:
+        build:
+            context: .
+            target: app
+        container_name: app
+        hostname: "${SERVER_HOST:-localhost}"
+        environment:
+            XDEBUG_CONFIG: 'idekey=PHPSTORM client_host=host.docker.internal client_port=9003 mode=debug,develop'
+            PHP_IDE_CONFIG: 'serverName=app'
+        volumes:
+            - ".:/app"
+        ports:
+            - "${SERVER_HTTP_PORT:-80}:80"
+            - "${SERVER_HTTPS_PORT:-443}:443"
+        depends_on:
+            - db
+            - rabbit
+
+    db:
+        image: mysql:latest
+        restart: unless-stopped
+        container_name: db
+        environment:
+            MYSQL_ROOT_PASSWORD: "${DB_ROOT_PASSWORD:-123123}"
+        ports:
+            - "3306:3306"
+
+    rabbit:
+        image: rabbitmq:management
+        container_name: rabbit
+        ports:
+            - "5672:5672"
+            - "15672:15672"
+
+    bg:
+        build:
+            context: .
+            target: bg
+        container_name: bg
+        environment:
+            XDEBUG_CONFIG: 'idekey=PHPSTORM client_host=host.docker.internal client_port=9003 mode=debug,develop'
+            PHP_IDE_CONFIG: 'serverName=app'
+        volumes:
+            - ".:/app"
+        depends_on:
+            - db
+            - rabbit

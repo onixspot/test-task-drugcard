@@ -1,0 +1,61 @@
+{
+  "listeners": {
+    "*:80": {
+      "pass": "routes/redirects"
+    },
+    "*:443": {
+      "pass": "routes/main",
+      "tls": {
+        "certificate": "${HOSTNAME}.pem"
+      }
+    }
+  },
+  "routes": {
+    "main": [
+      {
+        "match": {
+          "uri": [
+            "*.php",
+            "*.php/*"
+          ]
+        },
+        "action": {
+          "pass": "applications/symfony/direct"
+        }
+      },
+      {
+        "action": {
+          "share": "/app/public$uri",
+          "fallback": {
+            "pass": "applications/symfony/index"
+          }
+        }
+      }
+    ],
+    "redirects": [
+      {
+        "match": {
+          "scheme": "http"
+        },
+        "action": {
+          "return": 301,
+          "location": "https://${host}${request_uri}"
+        }
+      }
+    ]
+  },
+  "applications": {
+    "symfony": {
+      "type": "php",
+      "targets": {
+        "direct": {
+          "root": "/app/public/"
+        },
+        "index": {
+          "root": "/app/public/",
+          "script": "index.php"
+        }
+      }
+    }
+  }
+}
