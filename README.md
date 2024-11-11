@@ -17,7 +17,7 @@ The option `--rcfile` gives you an opportunity to use `[TAB][TAB]` functionality
 
 For grabbing products data from [Goldi](https://goldi.ua) store 3 pages execute next command in app container:
 ```shell
-bin/console sync:products App\\Source\\GoldiUAGrabber --limit 3
+bin/console sync:products App\\Source\\GoldiUASource --limit 3
 ```
 
 # Endpoints
