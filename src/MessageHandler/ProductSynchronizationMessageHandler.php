@@ -4,9 +4,9 @@ namespace App\MessageHandler;
 
 use App\Entity\Product;
 use App\Grabber\Grabber;
+use App\Grabber\SourceFactory;
 use App\Message\ProductSynchronizationMessage;
 use App\Repository\ProductRepository;
-use App\Source\GoldiUAGrabber;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Component\Messenger\Attribute\AsMessageHandler;
 
@@ -17,14 +17,14 @@ class ProductSynchronizationMessageHandler
         private readonly Grabber $grabber,
         private readonly ProductRepository $productRepository,
         private readonly EntityManagerInterface $entityManager,
-    )
-    {
+        private readonly SourceFactory $sourceFactory,
+    ) {
     }
 
-    public function __invoke(ProductSynchronizationMessage $message)
+    public function __invoke(ProductSynchronizationMessage $message): void
     {
         $collection = ($this->grabber)(
-            source: new GoldiUAGrabber($message->getUri()),
+            source: $this->sourceFactory->createSource($message->getSource(), uri: $message->getUri()),
             offset: $message->getOffset(),
             limit: $message->getLimit()
         );

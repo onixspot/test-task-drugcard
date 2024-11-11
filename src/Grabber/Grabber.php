@@ -40,7 +40,7 @@ class Grabber
 
                 foreach ($references as $reference) {
                     $this->messageBus->dispatch(new ProductSynchronizationMessage(
-                        grabber: $source::class,
+                        source: $source::class,
                         uri: $reference
                     ));
                 }

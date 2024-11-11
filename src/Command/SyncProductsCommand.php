@@ -28,7 +28,7 @@ class SyncProductsCommand extends Command
     protected function configure(): void
     {
         $this
-            ->addArgument('grabber', InputArgument::REQUIRED)
+            ->addArgument('source', InputArgument::REQUIRED)
             ->addOption('offset', 'o', InputOption::VALUE_OPTIONAL, '', 0)
             ->addOption('limit', 'l', InputOption::VALUE_OPTIONAL);
     }
@@ -37,7 +37,7 @@ class SyncProductsCommand extends Command
     {
         $io = new SymfonyStyle($input, $output);
         $this->bus->dispatch(new ProductSynchronizationMessage(
-            grabber: $input->getArgument('grabber'),
+            source: $input->getArgument('source'),
             offset: $input->getOption('offset'),
             limit: $input->getOption('limit')
         ));

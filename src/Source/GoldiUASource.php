@@ -7,7 +7,7 @@ use App\Grabber\SourceInterface;
 use Symfony\Component\DomCrawler\Crawler;
 use Symfony\Component\DomCrawler\UriResolver;
 
-class GoldiUAGrabber implements SourceInterface
+class GoldiUASource implements SourceInterface
 {
     public const URI = 'https://goldi.ua/catalog/zinocij-odag';
 

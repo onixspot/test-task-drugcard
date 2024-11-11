@@ -44,6 +44,6 @@ FROM app AS bg
 
 RUN apt update -qq && apt install -qq -y supervisor
 RUN mkdir -p /var/log/supervisor
-COPY config/worker.ini /etc/supervisor/supervisor.conf
+COPY config/worker.ini /etc/supervisor/conf.d/worker.conf
 
-CMD ["/usr/bin/supervisord", "-c", "/etc/supervisor/supervisor.conf"]
+CMD ["/usr/bin/supervisord", "-c", "/etc/supervisor/supervisord.conf", "-n"]

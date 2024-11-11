@@ -5,7 +5,7 @@ namespace App\Message;
 readonly class ProductSynchronizationMessage
 {
     public function __construct(
-        private string $grabber,
+        private string $source,
         private ?string $uri = null,
         private ?int $offset = null,
         private ?int $limit = null,
@@ -27,9 +27,9 @@ readonly class ProductSynchronizationMessage
         return $this->limit;
     }
 
-    public function getGrabber(): string
+    public function getSource(): string
     {
-        return $this->grabber;
+        return $this->source;
     }
 
 }
