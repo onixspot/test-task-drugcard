@@ -2,84 +2,165 @@
 
 namespace App\Grabber;
 
-use App\Message\ProductSynchronizationMessage;
+use App\Event\GrabberEvent;
+use App\Extractor\PaginationExtractor;
+use App\Filter\FilterInterface;
+use App\Filter\PagesFilter;
+use App\Message\GrabResourceMessage;
+use App\Resource\ResourceInterface;
 use Doctrine\Common\Collections\ArrayCollection;
-use League\Uri\Uri;
-use RuntimeException;
+use Doctrine\Common\Collections\Collection;
+use Symfony\Component\DependencyInjection\Attribute\AutowireLocator;
+use Symfony\Component\DependencyInjection\ServiceLocator;
 use Symfony\Component\DomCrawler\Crawler;
+use Symfony\Component\DomCrawler\UriResolver;
 use Symfony\Component\HttpFoundation\Request;
+use Symfony\Component\Messenger\Attribute\AsMessageHandler;
 use Symfony\Component\Messenger\MessageBusInterface;
-use Symfony\Component\Serializer\SerializerInterface;
+use Symfony\Contracts\EventDispatcher\EventDispatcherInterface;
 use Symfony\Contracts\HttpClient\HttpClientInterface;
-use Throwable;
 
+#[AsMessageHandler(handles: GrabResourceMessage::class, method: 'handleGrab')]
 class Grabber
 {
+    public const string GRABBED_ITEM_EVENT = 'grabbed_item';
+
+    /**
+     * @param ServiceLocator<ResourceInterface> $locator
+     * @param MessageBusInterface $messageBus
+     * @param HttpClientInterface $client
+     * @param EventDispatcherInterface $eventDispatcher
+     */
     public function __construct(
-        private readonly HttpClientInterface $httpClient,
-        private readonly SerializerInterface $serializer,
+        #[AutowireLocator(ResourceInterface::class, indexAttribute: 'key')]
+        private readonly ServiceLocator $locator,
         private readonly MessageBusInterface $messageBus,
+        private readonly HttpClientInterface $client,
+        private readonly EventDispatcherInterface $eventDispatcher,
     ) {
     }
 
-    public function __invoke(SourceInterface $source, ?int $offset = null, ?int $limit = null): ArrayCollection
+    public function __invoke($resourceClass): GrabberInterface
     {
-        try {
-            $uri = $source->getUri();
-            $crawler = $this->request($uri, [
-                'vars' => $source->getUriVariables(),
-            ]);
+        $resource = $this->locator->get($resourceClass);
 
-            if ($offset !== null || $limit !== null) {
-                $references = $source->resolvePagination($crawler);
-                $references = array_slice($references, $offset ?? 0, $limit);
-                $key = array_search($uri, $references, true);
-                if ($key !== false) {
-                    unset($references[$key]);
-                }
+        return new class ($resource, grabber: $this) implements GrabberInterface {
 
-                foreach ($references as $reference) {
-                    $this->messageBus->dispatch(new ProductSynchronizationMessage(
-                        source: $source::class,
-                        uri: $reference
-                    ));
-                }
+            /** @var Collection<FilterInterface> */
+            private Collection $filters;
+
+            public function __construct(
+                private readonly ResourceInterface $resource,
+                private readonly Grabber $grabber,
+            ) {
+                $this->filters = new ArrayCollection();
             }
 
-            $resolvedItems = array_merge(...$source
-                ->defineScope($crawler)
-                ->each(function (Crawler $crawler) use ($source) {
-                    return $source
-                        ->resolveItems($crawler)
-                        ->each(function ($crawler) use ($source) {
-                            try {
-                                return $source->parseItem($crawler);
-                            } catch (Throwable $e) {
-                                throw new RuntimeException($e->getMessage(), $e->getCode(), $e);
-                            }
-                        });
-                }));
+            public function addFilter(FilterInterface $filter): GrabberInterface
+            {
+                $this->filters->add($filter);
 
-            return new ArrayCollection($this->serializer->deserialize(json_encode($resolvedItems, JSON_THROW_ON_ERROR), sprintf('%s[]', $source->targetEntity()), 'json'));
-        } catch (Throwable $exception) {
-            return new ArrayCollection();
-        }
+                return $this;
+            }
+
+            public function grab(): void
+            {
+                $this
+                    ->getMessageBus()
+                    ->dispatch(
+                        new GrabResourceMessage(
+                            resourceClass: ($this->getResource())::class,
+                            filters: $this->getFilters()->toArray(),
+                        )
+                    );
+            }
+
+            public function getMessageBus(): MessageBusInterface
+            {
+                return $this->getGrabber()->getMessageBus();
+            }
+
+            public function getResource(): ResourceInterface
+            {
+                return $this->resource;
+            }
+
+            public function getGrabber(): Grabber
+            {
+                return $this->grabber;
+            }
+
+            public function getFilters(): Collection
+            {
+                return $this->filters;
+            }
+        };
     }
 
-    private function request(Uri|string $uri, array $options = []): Crawler
+    /**
+     * @return MessageBusInterface
+     */
+    public function getMessageBus(): MessageBusInterface
     {
-        try {
-            $response = $this->getHttpClient()->request(Request::METHOD_GET, $uri, $options);
-            $content = $response->getContent();
-
-            return new Crawler($content, $uri);
-        } catch (Throwable $e) {
-            throw new RuntimeException($e->getMessage(), $e->getCode(), $e);
-        }
+        return $this->messageBus;
     }
 
-    private function getHttpClient(): HttpClientInterface
+    public function handleGrab(GrabResourceMessage $message): void
     {
-        return $this->httpClient;
+        $resource = $this->locator->get($message->resourceClass);
+        $filters = $message->getFilters();
+
+        call_user_func(
+            match (true) {
+                true !== $filters->isEmpty() => function () use ($resource, $filters) {
+                    $filter = $filters->findFirst(function ($index, $filter) {
+                        return $filter instanceof PagesFilter;
+                    });
+                    $filter ??= new PagesFilter();
+                    $hrefs = $resource
+                        ->getExtractor()
+                        ->extract(
+                            $this->loadCrawler($resource),
+                            PaginationExtractor::PAGINATION_ONLY
+                        );
+                    $hrefs = array_slice(
+                        array: $hrefs,
+                        offset: $filter->getOffset(),
+                        length: $filter->getLimit()
+                    );
+                    foreach ($hrefs as $href) {
+                        $this->getMessageBus()->dispatch(
+                            new GrabResourceMessage(
+                                resourceClass: $resource::class,
+                                uri: $href,
+                            )
+                        );
+                    }
+                },
+                $message->uri !== null => function () use ($message, $resource) {
+                    $collection = $resource->getExtractor()->extract($this->loadCrawler($resource, $message->uri));
+                    foreach ($collection as $item) {
+                        $this->eventDispatcher->dispatch(new GrabberEvent($item), self::GRABBED_ITEM_EVENT);
+                    }
+                }
+            }
+        );
+    }
+
+    private function loadCrawler(ResourceInterface $resource, ?string $relativeUri = null): Crawler
+    {
+        $uri = $relativeUri !== null ? UriResolver::resolve($relativeUri, $resource->getUri()) : $resource->getUri();
+
+        return new Crawler(
+            $this->getClient()
+                ->request(Request::METHOD_GET, $uri)
+                ->getContent(),
+            $uri
+        );
+    }
+
+    public function getClient(): HttpClientInterface
+    {
+        return $this->client;
     }
 }

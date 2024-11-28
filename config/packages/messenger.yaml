@@ -1,8 +1,9 @@
 framework:
     messenger:
         transports:
-            product_synchronization:
+            grabber:
                  dsn: '%env(MESSENGER_TRANSPORT_DSN)%'
 
         routing:
-            'App\Message\ProductSynchronizationMessage': product_synchronization
+            App\Message\GrabResourceMessage: grabber
+#            'App\Message\GrabberMessageInterface': grabber

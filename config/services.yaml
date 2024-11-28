@@ -6,20 +6,38 @@
 parameters:
 
 services:
-    # default configuration for services in *this* file
-    _defaults:
-        autowire: true      # Automatically injects dependencies in your services.
-        autoconfigure: true # Automatically registers your services as commands, event subscribers, etc.
+  # default configuration for services in *this* file
+  _defaults:
+    autowire: true      # Automatically injects dependencies in your services.
+    autoconfigure: true # Automatically registers your services as commands, event subscribers, etc.
 
-    # makes classes in src/ available to be used as services
-    # this creates a service per class whose id is the fully-qualified class name
-    App\:
-        resource: '../src/'
-        exclude:
-            - '../src/DependencyInjection/'
-            - '../src/Entity/'
-            - '../src/Kernel.php'
+  #    _instanceof:
+  #        Internal\Grabber\WebResourceInterface:
+  #            tags: ['grabber']
+  # makes classes in src/ available to be used as services
+  # this creates a service per class whose id is the fully-qualified class name
 
-    # add more service definitions when explicit configuration is needed
-    # please note that last definitions always *replace* previous ones
-    App\Grabber\SourceFactory: ~
+  App\:
+    resource: '../src/'
+    exclude:
+      - '../src/DependencyInjection/'
+      - '../src/Entity/'
+      - '../src/Kernel.php'
+
+  Symfony\Component\Serializer\Normalizer\ObjectNormalizer:
+    tags: [ 'serializer.normalizer' ]
+
+  App\Resource\GoldiUA: ~
+
+  grabber.listing.extractor:
+    stack:
+      - App\Extractor\PaginationExtractor: ~
+      - App\Extractor\Extractor: ~
+      - App\Extractor\Extractor: ~
+      - App\Extractor\Extractor:
+          $resource: '@App\Resource\GoldiUA'
+
+  App\Grabber\Grabber: ~
+
+  # add more service definitions when explicit configuration is needed
+  # please note that last definitions always *replace* previous ones

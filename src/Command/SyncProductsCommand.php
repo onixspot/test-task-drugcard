@@ -2,7 +2,7 @@
 
 namespace App\Command;
 
-use App\Message\ProductSynchronizationMessage;
+use App\Message\ProductsGrabbingMessage;
 use Symfony\Component\Console\Attribute\AsCommand;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Input\InputArgument;
@@ -36,8 +36,8 @@ class SyncProductsCommand extends Command
     protected function execute(InputInterface $input, OutputInterface $output): int
     {
         $io = new SymfonyStyle($input, $output);
-        $this->bus->dispatch(new ProductSynchronizationMessage(
-            source: $input->getArgument('source'),
+        $this->bus->dispatch(new ProductsGrabbingMessage(
+            webResourceClass: $input->getArgument('source'),
             offset: $input->getOption('offset'),
             limit: $input->getOption('limit')
         ));

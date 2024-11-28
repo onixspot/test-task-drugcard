@@ -15,26 +15,29 @@ use Doctrine\ORM\Mapping as ORM;
         uriTemplate: 'products/export',
         formats: ['csv' => ['text/csv']],
         paginationEnabled: false
-    )
+    ),
 ])]
 class Product
 {
-    #[ORM\Id]
-    #[ORM\GeneratedValue]
-    #[ORM\Column]
-    private ?int $id = null;
+    public function __construct(
+        #[ORM\Id]
+        #[ORM\GeneratedValue]
+        #[ORM\Column]
+        private ?int $id = null,
 
-    #[ORM\Column(length: 255)]
-    private ?string $name = null;
+        #[ORM\Column(length: 255)]
+        private ?string $name = null,
 
-    #[ORM\Column(type: Types::DECIMAL, precision: 12, scale: 2)]
-    private ?string $price = null;
+        #[ORM\Column(type: Types::DECIMAL, precision: 12, scale: 2)]
+        private ?string $price = null,
 
-    #[ORM\Column(length: 255, unique: true)]
-    private ?string $reference = null;
+        #[ORM\Column(length: 255, unique: true)]
+        private ?string $reference = null,
 
-    #[ORM\Column(length: 255, nullable: true)]
-    private ?string $imageReference = null;
+        #[ORM\Column(length: 255, nullable: true)]
+        private ?string $imageReference = null,
+    ) {
+    }
 
     public function getId(): ?int
     {
