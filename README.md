@@ -1,17 +1,11 @@
 # Test Task DrugCard
 
-## Build & Up
+## Build & Run
 
-First of all, need to build containers.
-This can be done using the typical command of docker compose tool:
+Run next command in root directory of the project:
 
 ```shell
-docker compose build
-```
-
-After that need to run next command:
-```bash
-docker compose up -d
+docker compose up -d --build
 ```
 
 ## Using
