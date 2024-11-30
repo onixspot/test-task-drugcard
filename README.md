@@ -8,9 +8,10 @@ Run next command in root directory of the project:
 docker compose up -d --build
 ```
 
-## Using
+## Usage
 
-First of all we need to get into app container
+Get into app container:
+
 ```shell
 docker exec -it app bash --rcfile /root/.profile
 ```
@@ -19,7 +20,7 @@ The option `--rcfile` gives you an opportunity to use `[TAB][TAB]` functionality
 
 For grabbing products data from [Goldi](https://goldi.ua) store 3 pages execute next command in app container:
 ```shell
-bin/console sync:products App\\Source\\GoldiUASource --limit 3
+bin/console sync:products App\\Resource\\GoldiUA --limit 3
 ```
 
 # Endpoints
