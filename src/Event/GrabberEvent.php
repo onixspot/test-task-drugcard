@@ -8,6 +8,7 @@ class GrabberEvent extends Event
 {
     public function __construct(
         private mixed $data,
+        private readonly ?string $resourceClass = null,
     ) {
     }
 
@@ -22,5 +23,10 @@ class GrabberEvent extends Event
     public function getData(): mixed
     {
         return $this->data;
+    }
+
+    public function getResourceClass(): ?string
+    {
+        return $this->resourceClass;
     }
 }

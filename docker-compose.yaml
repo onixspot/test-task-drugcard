@@ -3,7 +3,7 @@ services:
         build:
             context: .
             target: app
-        container_name: app
+        container_name: ttg.app
         hostname: "${SERVER_HOST:-localhost}"
         environment:
             XDEBUG_CONFIG: 'idekey=PHPSTORM client_host=host.docker.internal client_port=9003 mode=debug,develop'
@@ -21,7 +21,7 @@ services:
     db:
         image: mysql:latest
         restart: unless-stopped
-        container_name: db
+        container_name: ttg.db
         environment:
             MYSQL_ROOT_PASSWORD: "${DB_ROOT_PASSWORD:-123123}"
         ports:
@@ -29,7 +29,7 @@ services:
 
     rabbit:
         image: rabbitmq:management
-        container_name: rabbit
+        container_name: ttg.rabbit
         ports:
             - "5672:5672"
             - "15672:15672"
@@ -38,7 +38,7 @@ services:
         build:
             context: .
             target: bg
-        container_name: bg
+        container_name: ttg.bg
         environment:
             XDEBUG_CONFIG: 'idekey=PHPSTORM client_host=host.docker.internal client_port=9003 mode=debug,develop'
             PHP_IDE_CONFIG: 'serverName=app'

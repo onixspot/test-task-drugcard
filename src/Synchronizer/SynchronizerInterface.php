@@ -2,8 +2,10 @@
 
 namespace App\Synchronizer;
 
+use Doctrine\Common\Collections\Collection;
+
 interface SynchronizerInterface
 {
-    public function synchronize(callable $iteratorProvider): void;
+    public function synchronize(Collection $collection): void;
 
 }

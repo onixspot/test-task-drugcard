@@ -23,7 +23,8 @@ use Symfony\Contracts\HttpClient\HttpClientInterface;
 #[AsMessageHandler(handles: GrabResourceMessage::class, method: 'handleGrab')]
 class Grabber
 {
-    public const string GRABBED_ITEM_EVENT = 'grabbed_item';
+    public const string PAGINATION_FETCHED_EVENT = 'grabber.pagination-fetched';
+    public const string CONTENT_CAPTURED_EVENT = 'grabber.content-captured';
 
     /**
      * @param ServiceLocator<ResourceInterface> $locator
@@ -123,25 +124,27 @@ class Grabber
                             $this->loadCrawler($resource),
                             PaginationExtractor::PAGINATION_ONLY
                         );
-                    $hrefs = array_slice(
-                        array: $hrefs,
-                        offset: $filter->getOffset(),
-                        length: $filter->getLimit()
+                    $this->eventDispatcher->dispatch(
+                        new GrabberEvent(
+                            new ArrayCollection(
+                                array_slice(
+                                    array: $hrefs,
+                                    offset: $filter->getOffset(),
+                                    length: $filter->getLimit()
+                                )
+                            ),
+                            resourceClass: $resource::class
+                        ),
+                        Grabber::PAGINATION_FETCHED_EVENT
                     );
-                    foreach ($hrefs as $href) {
-                        $this->getMessageBus()->dispatch(
-                            new GrabResourceMessage(
-                                resourceClass: $resource::class,
-                                uri: $href,
-                            )
-                        );
-                    }
                 },
                 $message->uri !== null => function () use ($message, $resource) {
-                    $collection = $resource->getExtractor()->extract($this->loadCrawler($resource, $message->uri));
-                    foreach ($collection as $item) {
-                        $this->eventDispatcher->dispatch(new GrabberEvent($item), self::GRABBED_ITEM_EVENT);
-                    }
+                    $this->eventDispatcher->dispatch(
+                        new GrabberEvent(
+                            $resource->getExtractor()->extract($this->loadCrawler($resource, $message->uri))
+                        ),
+                        self::CONTENT_CAPTURED_EVENT
+                    );
                 }
             }
         );
